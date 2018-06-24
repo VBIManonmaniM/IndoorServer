@@ -1,0 +1,171 @@
+<html>
+
+<body>
+    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+    <!-- <link rel="stylesheet" href="./css/font-awesome.min.css" /> -->
+    <link rel="stylesheet" href="./library/leaflet.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.12/leaflet.draw.css"
+    />
+    <link rel="stylesheet" href="./css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./library/L.Control.HtmlLegend.css" />
+    <link rel="stylesheet" href="./markers/leaflet.scn-designstudio-markers.css" />
+    <script src="./library/leaflet.js"></script>
+    <script src="./library/heatmap-min.js"></script>
+    <script src="./library/leaflet-heatmap.js"></script>
+    <script src="./library/leaflet.draw.js"></script>
+    <script src="./library/L.Control.HtmlLegend.js"></script>
+    <script src="./library/l.ellipse.min.js"></script>
+    <script src="./markers/leaflet.scn-designstudio-markers.js"></script>
+    <script src="./jquery/jquery-3.2.1.js"></script>
+    <script src="./lodash/lodash.js"></script>
+    <div id="map" style="position:absolute;left:5%;top:5%;right:5%; height: 90%; width: 90%"></div>
+    <button id="cancel" class="btn btn-sm btn-primary" style="position:absolute; bottom:0%;right:11%;"><i class="fa fa-times" aria-hidden="true"></i> Cancel</button>
+    <button id="save" class="btn btn-sm btn-primary" style="position:absolute; bottom:0%;right:5%;"><i class="fa fa-floppy-o" aria-hidden="true"></i> Save</button>
+    <script>
+        function download(filename, text) {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        var map = null;
+        var imageOverlayUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg';
+        var shapeObjects = [];
+
+        L.LatLng.prototype.distanceTo = function (currentPostion) {
+            var dx = currentPostion.lng - this.lng;
+            var dy = currentPostion.lat - this.lat;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+        var editableLayers = null;
+        $("#save").on("click", function () {
+            shapeObjects = [];
+            _.each(editableLayers._layers, function (shape) {
+                if (shape.options.layerType === 'circle' || shape.options.layerType === 'marker') {
+                    shapeObjects.push({
+                        name: shape.options.layerType,
+                        shapeName:shape._tooltip._content,
+                        dimension: '',
+                        options: shape.options,
+                        _latlng: shape._latlng,
+                        _mRadius: shape._mRadius
+                    });
+                }
+                else {
+                    shapeObjects.push({
+                        name: shape.options.layerType,
+                        shapeName:shape._tooltip._content,
+                        dimension: '',
+                        options: shape.options,
+                        _latlngs: shape._latlngs
+                    });
+                }
+            });
+            download('geojson.json', JSON.stringify(shapeObjects));
+            // window.parent.opener.setParameters(editableLayers);
+            // parent.window.close();
+        });
+        $("#cancel").on("click", function () {
+            // parent.window.close();
+        });
+        var markerIcon = L.SCNDesignStudioMarkers.icon({
+            iconUrl: '../../../../com.visualbi.vbilibrary/res/library/icons/marker-icon.png'
+        });
+        function addEditors() {
+            editableLayers = new L.FeatureGroup();
+            map.addLayer(editableLayers);
+            var drawPluginOptions = {
+                position: 'topright',
+                draw: {
+                    polyline: {
+                        shapeOptions: {
+                            color: '#f357a1',
+                            weight: 10,
+                            name: 'polyline'
+                        }
+                    },
+                    polygon: {
+                        allowIntersection: false, // Restricts shapes to simple polygons
+                        drawError: {
+                            color: '#e1e100', // Color the shape will turn when intersects
+                            message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
+                        },
+                        shapeOptions: {
+                            color: '#bada55',
+                            name: 'polygon'
+                        }
+                    },
+                    marker: {
+                        icon: markerIcon
+                    },
+                    circlemarker: false,
+                    circle: {
+                        shapeOptions: {
+                            color: '#bada55',
+                            name: 'circle'
+                        }
+
+                    }, // Turns off this drawing tool
+                    rectangle: {
+                        shapeOptions: {
+                            clickable: false,
+                            name: "rectangle"
+                        }
+                    },
+                },
+                edit: {
+                    featureGroup: editableLayers, //REQUIRED!!
+                    remove: true
+                },
+                delete: {
+                    featureGroup: editableLayers, //REQUIRED!!                    
+                }
+            };
+            var drawControl = new L.Control.Draw(drawPluginOptions);
+            map.addControl(drawControl);
+            map.on('draw:created', function (e) {
+                var type = e.layerType,
+                    layer = e.layer;
+                layer.options["layerType"] = type;
+                layer.on('contextmenu', function(e) {
+                    this.bindTooltip("MANO",{permanent: true});
+                });
+                editableLayers.addLayer(layer);
+            });
+        }
+
+        function initMap(imageBound) {
+            if (map) {
+                map.remove();
+            }
+            map = L.map('map', {
+                crs: L.CRS.Simple,
+                minZoom: -2,
+                maxZoom: 10,
+            });
+            var bounds = [
+                imageBound,
+                [0, 0]
+            ];
+            var image = L.imageOverlay(imageOverlayUrl, bounds, {
+                'ZIndex': -2
+            }).addTo(map);
+            map.fitBounds(bounds);
+        }
+
+        function initlayer() {
+            var sourceImage = $("<img />").css({ 'display': 'none' }).attr("src", imageOverlayUrl);
+            sourceImage.on("load", function () {
+                initMap([this.naturalHeight, this.naturalWidth]);
+                addEditors();
+            });
+        }
+        initlayer();
+    </script>
+</body>
+
+</html>
