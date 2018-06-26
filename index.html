@@ -48,7 +48,7 @@
                 if (shape.options.layerType === 'circle' || shape.options.layerType === 'marker') {
                     shapeObjects.push({
                         name: shape.options.layerType,
-                        shapeName:shape._tooltip._content,
+                        shapeName:shape.shapeName,
                         dimension: '',
                         options: shape.options,
                         _latlng: shape._latlng,
@@ -58,7 +58,7 @@
                 else {
                     shapeObjects.push({
                         name: shape.options.layerType,
-                        shapeName:shape._tooltip._content,
+                        shapeName:shape.shapeName,
                         dimension: '',
                         options: shape.options,
                         _latlngs: shape._latlngs
@@ -127,6 +127,10 @@
             };
             var drawControl = new L.Control.Draw(drawPluginOptions);
             map.addControl(drawControl);
+            map.on('click', function() {
+                window.currentTooltip && window.currentTooltip.closeTooltip();
+                window.currentTooltip = null;
+            });
             map.on('draw:created', function (e) {
                 var type = e.layerType,
                     layer = e.layer;
@@ -135,16 +139,17 @@
                     $('.contextmenu-name').remove();
                     window.currentTooltip && window.currentTooltip.closeTooltip();
                     window.layer = this;
-                    window.currentTooltip = this.bindTooltip('<div class= "contextmenu-name" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
+                    window.currentTooltip = this.bindTooltip('<div class= "contextmenu-name" onmousedown="event.stopPropagation();" onmouseup="event.stopPropagation();" onclick="event.stopPropagation();" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
                 });
                 editableLayers.addLayer(layer);
             });
         }
 
         window.addName = function(event , layer) {
-            window.currentTooltip.closeTooltip();
+            window.currentTooltip && window.currentTooltip.closeTooltip();
             window.currentTooltip = null;
             let name = $('#content').val();
+            layer.shapeName = name;
             name && layer.bindTooltip(name, {permanent: true});
             $('.contextmenu-name').remove();
         };
