@@ -131,17 +131,21 @@
                 var type = e.layerType,
                     layer = e.layer;
                 layer.options["layerType"] = type;
-                layer.on('contextmenu', function(e) {                    
+                layer.on('contextmenu', function (e) {                    
                     $('.contextmenu-name').remove();
+                    window.currentTooltip && window.currentTooltip.closeTooltip();
                     window.layer = this;
-                    this.bindTooltip('<div class= "contextmenu-name" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
+                    window.currentTooltip = this.bindTooltip('<div class= "contextmenu-name" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
                 });
                 editableLayers.addLayer(layer);
             });
         }
 
         window.addName = function(event , layer) {
-            layer.bindTooltip($('#content').val(), {permanent: true});
+            window.currentTooltip.closeTooltip();
+            window.currentTooltip = null;
+            let name = $('#content').val();
+            name && layer.bindTooltip(name, {permanent: true});
             $('.contextmenu-name').remove();
         };
 
