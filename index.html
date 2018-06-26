@@ -2,7 +2,7 @@
 
 <body>
     <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
-    <!-- <link rel="stylesheet" href="./css/font-awesome.min.css" /> -->
+    <link rel="stylesheet" href="./css/font-awesome.min.css" />
     <link rel="stylesheet" href="./library/leaflet.css" />
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.12/leaflet.draw.css"
     />
@@ -131,12 +131,19 @@
                 var type = e.layerType,
                     layer = e.layer;
                 layer.options["layerType"] = type;
-                layer.on('contextmenu', function(e) {
-                    this.bindTooltip("MANO",{permanent: true});
+                layer.on('contextmenu', function(e) {                    
+                    $('.contextmenu-name').remove();
+                    window.layer = this;
+                    this.bindTooltip('<div class= "contextmenu-name" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
                 });
                 editableLayers.addLayer(layer);
             });
         }
+
+        window.addName = function(event , layer) {
+            layer.bindTooltip($('#content').val(), {permanent: true});
+            $('.contextmenu-name').remove();
+        };
 
         function initMap(imageBound) {
             if (map) {
