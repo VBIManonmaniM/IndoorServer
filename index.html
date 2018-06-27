@@ -97,7 +97,7 @@
                 draw: {
                     polyline: {
                         shapeOptions: {
-                            color: '#f357a1',
+                            color: 'rgb(51, 136, 255)',
                             weight: lineThickness,
                             name: 'polyline'
                         }
@@ -110,7 +110,7 @@
                         },
                         shapeOptions: {
                             weight: lineThickness,
-                            color: '#bada55',
+                            color: 'rgb(51, 136, 255)',
                             name: 'polygon'
                         }
                     },
@@ -121,7 +121,7 @@
                     circle: {
                         shapeOptions: {
                             weight: lineThickness,
-                            color: '#bada55',
+                            color: 'rgb(51, 136, 255)',
                             name: 'circle'
                         }
                     },
@@ -129,6 +129,7 @@
                         shapeOptions: {
                             weight: lineThickness,
                             clickable: false,
+                            color: 'rgb(51, 136, 255)',
                             name: "rectangle"
                         }
                     },
@@ -178,6 +179,7 @@
                     lineThicknessContainer.style['text-align'] = 'center';
                     lineThicknessContainer.style.width = '30px';
                     lineThicknessContainer.style.height = '30px';
+                    lineThicknessContainer.value = lineThickness;
                     $(lineThicknessContainer).on('input propertychange paste', function(){
                         lineThickness = $(this).val();
                         drawControl.remove();
