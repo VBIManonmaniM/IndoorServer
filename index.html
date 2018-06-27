@@ -1,5 +1,7 @@
 <html>
-
+<title>
+    Image Editor
+</title>
 <body>
     <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
     <link rel="stylesheet" href="./css/font-awesome.min.css" />
@@ -19,38 +21,54 @@
     <script src="./jquery/jquery-3.2.1.js"></script>
     <script src="./lodash/lodash.js"></script>
     <div style="position: absolute;width: 100%;height: 90%;">
-        <div id="map" style="position:absolute;left:5%;top:5%;right:5%; height: 90%; width: 90%"></div>
-        <button id="cancel" class="btn btn-sm btn-primary" style="position:absolute; bottom:0%;right:11%;"><i class="fa fa-times" aria-hidden="true"></i> Cancel</button>
-        <button id="save" class="btn btn-sm btn-primary" style="position:absolute; bottom:0%;right:5%;"><i class="fa fa-floppy-o" aria-hidden="true"></i> Save</button>    
+        <label style="position:absolute;top:4%;left:5%" for="imageurl">Image url</label>
+        <input type="text" id="imageurl" style="position:absolute;top:4%;left:15%;background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 300px;"/>        
+        <div id="map" style="position:absolute;left:5%;top:10%;right:5%; height: 80%; width: 90%"></div>
+        <div class="smokeScreen" style="z-index:100000;position:absolute;left:5%;top:10%;right:5%; height: 80%; width: 90%;font-size: 18px; background-color: rgb(204, 204, 204); opacity: 1;display: table-cell; text-align: center;"><table height="100%" width="100%"><tbody><tr><td id='message' style="text-align:center;word-wrap:break-word;" valign="middle">Please select a Image.</td></tr></tbody></table></div>
     </div>
     <script>
-        function download(filename, text) {
-            var element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-            element.setAttribute('download', filename);
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-        }
-
-        var map = null;
-        var imageOverlayUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg';
-        var shapeObjects = [];
-
+        var map = null,
+            imageOverlayUrl = '',
+            shapeObjects = [],
+            editableLayers = null;
         L.LatLng.prototype.distanceTo = function (currentPostion) {
             var dx = currentPostion.lng - this.lng;
             var dy = currentPostion.lat - this.lat;
             return Math.sqrt(dx * dx + dy * dy);
         };
-        var editableLayers = null;
-        $("#save").on("click", function () {
+        function imageOverlayChange() {
+            imageOverlayUrl = $('#imageurl').val();
+            initlayer();
+        };
+        debouncedInitLayer = _.debounce(imageOverlayChange,1000);
+        $('#imageurl').on('input propertychange paste', function(){
+            debouncedInitLayer();
+        });
+        function download(filename, text) {
+            var isIE = /*@cc_on!@*/false || !!document.documentMode;
+
+            // Edge 20+
+            var isEdge = !isIE && !!window.StyleMedia;
+            if(isIE || isEdge) {
+                var blobObject = new Blob([text]); 
+                window.navigator.msSaveBlob(blobObject, filename);
+            } else {
+                var element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                element.setAttribute('download', filename);
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            }
+        }
+        function save(){
             shapeObjects = [];
             _.each(editableLayers._layers, function (shape) {
                 if (shape.options.layerType === 'circle' || shape.options.layerType === 'marker') {
                     shapeObjects.push({
                         name: shape.options.layerType,
-                        shapeName:shape.shapeName,
+                        shapeName: shape.shapeName,
                         dimension: '',
                         options: shape.options,
                         _latlng: shape._latlng,
@@ -60,7 +78,7 @@
                 else {
                     shapeObjects.push({
                         name: shape.options.layerType,
-                        shapeName:shape.shapeName,
+                        shapeName: shape.shapeName,
                         dimension: '',
                         options: shape.options,
                         _latlngs: shape._latlngs
@@ -68,15 +86,7 @@
                 }
             });
             download('geojson.json', JSON.stringify(shapeObjects));
-            // window.parent.opener.setParameters(editableLayers);
-            // parent.window.close();
-        });
-        $("#cancel").on("click", function () {
-            // parent.window.close();
-        });
-        var markerIcon = L.SCNDesignStudioMarkers.icon({
-            iconUrl: '../../../../com.visualbi.vbilibrary/res/library/icons/marker-icon.png'
-        });
+        }
         function addEditors() {
             editableLayers = new L.FeatureGroup();
             map.addLayer(editableLayers);
@@ -102,7 +112,7 @@
                         }
                     },
                     marker: {
-                        icon: markerIcon
+                        icon: L.SCNDesignStudioMarkers.icon({})
                     },
                     circlemarker: false,
                     circle: {
@@ -129,7 +139,7 @@
             };
             var drawControl = new L.Control.Draw(drawPluginOptions);
             map.addControl(drawControl);
-            map.on('click', function() {
+            map.on('click', function () {
                 window.currentTooltip && window.currentTooltip.closeTooltip();
                 window.currentTooltip = null;
             });
@@ -137,25 +147,47 @@
                 var type = e.layerType,
                     layer = e.layer;
                 layer.options["layerType"] = type;
-                layer.on('contextmenu', function (e) {                    
+                layer.on('contextmenu', function (e) {
                     $('.contextmenu-name').remove();
                     window.currentTooltip && window.currentTooltip.closeTooltip();
                     window.layer = this;
-                    window.currentTooltip = this.bindTooltip('<div class= "contextmenu-name" onmousedown="event.stopPropagation();" onmouseup="event.stopPropagation();" onclick="event.stopPropagation();" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>',{permanent: true});
+                    window.currentTooltip = this.bindTooltip('<div class= "contextmenu-name" onmousedown="event.stopPropagation();" onmouseup="event.stopPropagation();" onclick="event.stopPropagation();" style="pointer-events:all;z-index:10000;"><input type="text" id="content" placeholder="\t\tType a Name" onkeypress="if(event.keyCode === 13)window.addName(event,layer)" style="background: white;border: 1px double #DDD;border-radius: 5px;box-shadow: 0 0 5px #333;color: #666;outline: none;height:25px;width: 200px;"/><button style="background: #3498db;border-radius: 60px;padding: 9px;" onClick="window.addName(event,layer)"><i class="fa fa-check"></i></button>', { permanent: true });
                 });
                 editableLayers.addLayer(layer);
             });
         }
-
-        window.addName = function(event , layer) {
+        function addControls() {
+            var customControl = L.Control.extend({
+                options: {
+                    position: 'topleft'
+                },
+                onAdd: function (map) {
+                    var saveContainer = L.DomUtil.create('a');
+                    saveContainer.href ='#';
+                    saveContainer.title = 'Save Layer';
+                    saveContainer.innerHTML = '<i style="font-size:15px;margin-top:8px;" class="fa fa-floppy-o" aria-hidden="true"></i>';
+                    saveContainer.onclick = function () {
+                        save();
+                    }
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                    container.appendChild(saveContainer);
+                    container.style.backgroundColor = 'white';
+                    container.style.backgroundSize = "30px 30px";
+                    container.style.width = '30px';
+                    container.style.height = '30px';
+                    return container;
+                }
+            });
+            map.addControl(new customControl());
+        }
+        window.addName = function (event, layer) {
             window.currentTooltip && window.currentTooltip.closeTooltip();
             window.currentTooltip = null;
             let name = $('#content').val();
             layer.shapeName = name;
-            name && layer.bindTooltip(name, {permanent: true});
+            name && layer.bindTooltip(name, { permanent: true });
             $('.contextmenu-name').remove();
         };
-
         function initMap(imageBound) {
             if (map) {
                 map.remove();
@@ -173,13 +205,25 @@
                 'ZIndex': -2
             }).addTo(map);
             map.fitBounds(bounds);
+            addControls();
         }
 
         function initlayer() {
+            if(!imageOverlayUrl) {
+                $('.smokeScreen').find('#message').html('Please select a Image.');
+                $('.smokeScreen').show();
+                return;
+            }
             var sourceImage = $("<img />").css({ 'display': 'none' }).attr("src", imageOverlayUrl);
+            $('.smokeScreen').find('#message').html('<i class="fa fa-spinner fa-spin" style="font-size:24px"></i>');
+            $('.smokeScreen').show();
             sourceImage.on("load", function () {
+                $('.smokeScreen').hide();
                 initMap([this.naturalHeight, this.naturalWidth]);
                 addEditors();
+            });
+            sourceImage.on("error", function () {
+                $('.smokeScreen').find('#message').html('Fail to load the image');
             });
         }
         initlayer();
