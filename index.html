@@ -112,21 +112,23 @@
                         }
                     },
                     marker: {
-                        icon: L.SCNDesignStudioMarkers.icon({})
+                        icon: L.SCNDesignStudioMarkers.icon({}),
+                        repeatMode: true
                     },
                     circlemarker: false,
                     circle: {
                         shapeOptions: {
                             color: '#bada55',
                             name: 'circle'
-                        }
-
+                        },
+                        repeatMode: true
                     }, // Turns off this drawing tool
                     rectangle: {
                         shapeOptions: {
                             clickable: false,
                             name: "rectangle"
-                        }
+                        },
+                        repeatMode: true
                     },
                 },
                 edit: {
