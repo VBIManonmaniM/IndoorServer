@@ -225,7 +225,8 @@
             if(!imageOverlayUrl) {
                 $('.smokeScreen').find('#message').html('Please select a Image.');
                 $('.smokeScreen').show();
-                imageOverlayUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg';
+                return ;
+                // imageOverlayUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg';
             }
             var sourceImage = $("<img />").css({ 'display': 'none' }).attr("src", imageOverlayUrl);
             $('.smokeScreen').find('#message').html('<i class="fa fa-spinner fa-spin" style="font-size:24px"></i>');
