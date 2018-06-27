@@ -30,7 +30,9 @@
         var map = null,
             imageOverlayUrl = '',
             shapeObjects = [],
-            editableLayers = null;
+            editableLayers = null,
+            lineThickness = 2,
+            drawControl = null;
         L.LatLng.prototype.distanceTo = function (currentPostion) {
             var dx = currentPostion.lng - this.lng;
             var dy = currentPostion.lat - this.lat;
@@ -87,8 +89,8 @@
             });
             download('geojson.json', JSON.stringify(shapeObjects));
         }
-        function addEditors() {
-            editableLayers = new L.FeatureGroup();
+        function addEditors(layers) {
+            editableLayers = layers;
             map.addLayer(editableLayers);
             var drawPluginOptions = {
                 position: 'topright',
@@ -96,7 +98,7 @@
                     polyline: {
                         shapeOptions: {
                             color: '#f357a1',
-                            weight: 10,
+                            weight: lineThickness,
                             name: 'polyline'
                         }
                     },
@@ -107,6 +109,7 @@
                             message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
                         },
                         shapeOptions: {
+                            weight: lineThickness,
                             color: '#bada55',
                             name: 'polygon'
                         }
@@ -118,6 +121,7 @@
                     circlemarker: false,
                     circle: {
                         shapeOptions: {
+                            weight: lineThickness,
                             color: '#bada55',
                             name: 'circle'
                         },
@@ -125,6 +129,7 @@
                     }, // Turns off this drawing tool
                     rectangle: {
                         shapeOptions: {
+                            weight: lineThickness,
                             clickable: false,
                             name: "rectangle"
                         },
@@ -139,7 +144,7 @@
                     featureGroup: editableLayers, //REQUIRED!!                    
                 }
             };
-            var drawControl = new L.Control.Draw(drawPluginOptions);
+            drawControl = new L.Control.Draw(drawPluginOptions);
             map.addControl(drawControl);
             map.on('click', function () {
                 window.currentTooltip && window.currentTooltip.closeTooltip();
@@ -171,12 +176,21 @@
                     saveContainer.onclick = function () {
                         save();
                     }
+                    var lineThicknessContainer = L.DomUtil.create('input');
+                    lineThicknessContainer.type = 'text';
+                    lineThicknessContainer.style['text-align'] = 'center';
+                    lineThicknessContainer.style.width = '30px';
+                    lineThicknessContainer.style.height = '30px';
+                    $(lineThicknessContainer).on('input propertychange paste', function(){
+                        lineThickness = $(this).val();
+                        drawControl.remove();
+                        addEditors(editableLayers);
+                    });
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                    container.appendChild(lineThicknessContainer);
                     container.appendChild(saveContainer);
                     container.style.backgroundColor = 'white';
                     container.style.backgroundSize = "30px 30px";
-                    container.style.width = '30px';
-                    container.style.height = '30px';
                     return container;
                 }
             });
@@ -214,7 +228,7 @@
             if(!imageOverlayUrl) {
                 $('.smokeScreen').find('#message').html('Please select a Image.');
                 $('.smokeScreen').show();
-                return;
+                imageOverlayUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg';
             }
             var sourceImage = $("<img />").css({ 'display': 'none' }).attr("src", imageOverlayUrl);
             $('.smokeScreen').find('#message').html('<i class="fa fa-spinner fa-spin" style="font-size:24px"></i>');
@@ -222,7 +236,7 @@
             sourceImage.on("load", function () {
                 $('.smokeScreen').hide();
                 initMap([this.naturalHeight, this.naturalWidth]);
-                addEditors();
+                addEditors(new L.FeatureGroup());
             });
             sourceImage.on("error", function () {
                 $('.smokeScreen').find('#message').html('Fail to load the image');
